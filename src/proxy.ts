@@ -1,34 +1,35 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
-export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request)
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const isAuthed = !!user
   const isDashboard = pathname.startsWith('/dashboard')
   const isAdmin = pathname.startsWith('/admin')
   const isAuthRoute = pathname.startsWith('/api/auth')
   const isLogin = pathname === '/login'
 
   // Allow public auth API routes
-  if (isAuthRoute) return supabaseResponse
+  if (isAuthRoute) return NextResponse.next()
 
-  // Redirect unauthenticated users away from protected routes
+  // Skip Supabase session check when env vars are not yet configured
+  const supabaseConfigured =
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.startsWith('http') &&
+    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseConfigured) {
+    return NextResponse.next()
+  }
+
+  const { supabaseResponse, user } = await updateSession(request)
+  const isAuthed = !!user
+
   if (!isAuthed && (isDashboard || isAdmin)) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Redirect authenticated users away from login
   if (isAuthed && isLogin) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  // Admin route protection — role check happens server-side in the page
-  // Middleware just ensures the user is authenticated; the admin page
-  // redirects to /dashboard if the role is not 'admin'
-  if (isAdmin && !isAuthed) {
-    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return supabaseResponse
