@@ -35,6 +35,7 @@ const mainNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Clients', href: '/clients', icon: Users },
   { label: 'Projects', href: '/projects', icon: FolderOpen },
+  { label: 'Catalog', href: '/catalog', icon: Package },
   { label: 'My Rules', href: '/rules', icon: BookOpen },
 ]
 
